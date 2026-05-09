@@ -16,9 +16,11 @@ LINE_COLORS = {
     '地铁4号线': '#7B2D8E',
     '地铁5号线': '#00B7EE',
     '地铁6号线': '#D5A216',
+    '地铁8号线': '#00BFFF',
     '地铁9号线': '#FF6A00',
     '地铁10号线': '#008C95',
     '地铁14号线': '#8B5CF6',
+    '地铁15号线': '#C71585',
     '地铁16号线': '#E91E8C',
     '西咸新区智轨示范线1号线': '#999999',
 }
@@ -31,10 +33,16 @@ def load_data():
     stops = gpd.read_file(os.path.join(BASE_DIR, 'sian_metro_stops.shp'), encoding='utf-8')
     segments = gpd.read_file(os.path.join(BASE_DIR, 'sian_metro_segments.shp'), encoding='utf-8')
     stops_unique = gpd.read_file(os.path.join(BASE_DIR, 'sian_metro_stops_unique.shp'), encoding='utf-8')
-    return stops, segments, stops_unique
+    routes = gpd.read_file(os.path.join(BASE_DIR, 'sian_metro_routes.shp'), encoding='utf-8')
+    return stops, segments, stops_unique, routes
 
-def build_graph(stops, segments):
+def build_graph(stops, segments, routes):
     stops['line_short'] = stops['route_cn'].apply(extract_line_name)
+
+    loop_line_names = set()
+    for _, row in routes.iterrows():
+        if str(row.get('loop', 0)) == '1':
+            loop_line_names.add(extract_line_name(row['route_cn']))
 
     line_directions = {}
     for _, row in stops.iterrows():
@@ -92,6 +100,27 @@ def build_graph(stops, segments):
                 'line': line_name,
                 'is_transfer': 0,
             })
+        if line_name in loop_line_names and len(stations) > 1:
+            s_first, s_last = stations[0], stations[-1]
+            key = tuple(sorted([s_first, s_last]))
+            dist_km = seg_dist.get(key, 1.5)
+            weight = dist_km / SPEED_KMH * 60.0
+            from_id = node_map[(s_last, line_name)]
+            to_id = node_map[(s_first, line_name)]
+            edges.append({
+                'from': from_id,
+                'to': to_id,
+                'weight': round(weight, 2),
+                'line': line_name,
+                'is_transfer': 0,
+            })
+            edges.append({
+                'from': to_id,
+                'to': from_id,
+                'weight': round(weight, 2),
+                'line': line_name,
+                'is_transfer': 0,
+            })
 
     station_lines = {}
     for node in nodes:
@@ -126,7 +155,8 @@ def write_graph_txt(nodes, edges, filepath):
         for node in nodes:
             f.write(f"{node['id']} {node['station']} {node['line']} {node['lon']:.6f} {node['lat']:.6f}\n")
         for edge in edges:
-            f.write(f"{edge['from']} {edge['to']} {edge['weight']:.2f} {edge['line']} {edge['is_transfer']}\n")
+            w = edge['weight'] if edge['weight'] == edge['weight'] else 2.0
+            f.write(f"{edge['from']} {edge['to']} {w:.2f} {edge['line']} {edge['is_transfer']}\n")
 
 def write_stations_json(nodes, filepath):
     station_map = {}
@@ -146,7 +176,9 @@ def write_stations_json(nodes, filepath):
     with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-def write_routes_json(nodes, filepath):
+def write_routes_json(nodes, filepath, loop_line_names=None):
+    if loop_line_names is None:
+        loop_line_names = set()
     route_map = {}
     for node in nodes:
         route_map.setdefault(node['line'], []).append({
@@ -156,6 +188,8 @@ def write_routes_json(nodes, filepath):
         })
     routes = []
     for line_name, stations in route_map.items():
+        if line_name in loop_line_names and len(stations) > 1:
+            stations.append(stations[0])
         routes.append({
             'name': line_name,
             'color': LINE_COLORS.get(line_name, '#666666'),
@@ -167,12 +201,17 @@ def write_routes_json(nodes, filepath):
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     print("Loading Shapefile data...")
-    stops, segments, stops_unique = load_data()
-    print(f"  Stops: {len(stops)}, Segments: {len(segments)}")
+    stops, segments, stops_unique, routes = load_data()
+    print(f"  Stops: {len(stops)}, Segments: {len(segments)}, Routes: {len(routes)}")
 
     print("Building graph...")
-    nodes, edges, node_map = build_graph(stops, segments)
+    nodes, edges, node_map = build_graph(stops, segments, routes)
     print(f"  Nodes: {len(nodes)}, Edges: {len(edges)}")
+
+    loop_line_names = set()
+    for _, row in routes.iterrows():
+        if str(row.get('loop', 0)) == '1':
+            loop_line_names.add(extract_line_name(row['route_cn']))
 
     transfer_count = sum(1 for n in nodes if any(
         n['station'] == other['station'] and n['line'] != other['line']
@@ -182,7 +221,7 @@ def main():
 
     write_graph_txt(nodes, edges, os.path.join(OUTPUT_DIR, 'graph.txt'))
     write_stations_json(nodes, os.path.join(OUTPUT_DIR, 'stations.json'))
-    write_routes_json(nodes, os.path.join(OUTPUT_DIR, 'routes.json'))
+    write_routes_json(nodes, os.path.join(OUTPUT_DIR, 'routes.json'), loop_line_names)
     print("Done! Files written to data/")
 
 if __name__ == '__main__':
