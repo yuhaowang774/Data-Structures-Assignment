@@ -60,47 +60,56 @@
 
 | 文件 | 内容 | 关键字段 |
 |------|------|----------|
-| sian_metro_stops.shp | 478条站点记录（11线×2方向） | name_cn, stop_id, route_cn, sequence, geometry |
-| sian_metro_stops_unique.shp | 217个去重站点 | stop_cn, stop_id, num(经过方向数), geometry |
-| sian_metro_segments.shp | 456条站间路段（228对双向） | s_stop_cn, e_stop_cn, distance(km), geometry |
-| sian_metro_routes.shp | 22条线路记录 | route_cn, start_time, end_time, basic_prc, total_prc |
+| sian_metro_stops.shp | 578条站点记录（13线×2方向） | name_cn, stop_id, route_cn, sequence, geometry |
+| sian_metro_stops_unique.shp | 250个去重站点 | stop_cn, stop_id, num(经过方向数), geometry |
+| sian_metro_segments.shp | 554条站间路段（277对双向） | s_stop_cn, e_stop_cn, distance(km), geometry |
+| sian_metro_routes.shp | 26条线路记录 | route_cn, start_time, end_time, basic_prc, total_prc, loop |
 
 ### 数据特征（已验证）
 
 - **segments无线路归属字段**：需通过stops的sequence推导边与线路的关系
-- **segments完全双向**：456/228=2.0，去重后228条无向边
+- **segments完全双向**：554/277=2.0，去重后277条无向边
 - **stops_unique的num**：表示经过的方向数（每条线2个方向），实际线路数=num/2
 - **距离单位**：km，范围0.512-6.610
 - **坐标范围**：Lon 108.65-109.23, Lat 34.11-34.52
+- **环线标记**：routes表中`loop`字段，1=环线，0=非环线。8号线为环线（内环/外环各一条route记录）
+- **非换乘站坐标精度有限**：约100-200米误差，对路径查询算法无影响，但地图可视化时线路可能不够平滑。如需更高精度，建议使用高德地图API或OpenStreetMap进行坐标校正
+- **路段几何为直线**：当前segments使用两点直线连接，与CPTOND原数据的多点折线有差异。如需更真实的线路几何，需要从OpenStreetMap获取轨道走向数据
 
-### 西安地铁线路清单（去重后11条）
+### 西安地铁线路清单（去重后13条）
 
-| 线路 | 唯一站点数 | 起止站 |
-|------|-----------|--------|
-| 1号线 | 30 | 纺织城—咸阳西 |
-| 2号线 | 25 | 草滩—常宁宫 |
-| 3号线 | 26 | 保税区—鱼化寨 |
-| 4号线 | 29 | 航天新城—西安北 |
-| 5号线 | 34 | 创新港—西安东 |
-| 6号线 | 32 | 纺织城—西安南 |
-| 9号线 | 15 | 纺织城—秦陵西 |
-| 10号线 | 17 | 昭慧广场—井上村 |
-| 14号线 | 18 | 贺韶—机场西 |
-| 16号线 | 9 | 秦创原中心—诗经里 |
-| 智轨1号线 | 4 | 昆明池—斗门 |
+| 线路 | 唯一站点数 | 起止站 | 备注 |
+|------|-----------|--------|------|
+| 1号线 | 30 | 纺织城—咸阳西 | |
+| 2号线 | 25 | 草滩—常宁宫 | |
+| 3号线 | 26 | 保税区—鱼化寨 | |
+| 4号线 | 29 | 航天新城—西安北 | |
+| 5号线 | 34 | 创新港—西安东 | |
+| 6号线 | 32 | 纺织城—西安南 | |
+| 8号线 | 37 | 山门口—山门口 | 环线(loop=1)，内环/外环各一条route |
+| 9号线 | 15 | 纺织城—秦陵西 | |
+| 10号线 | 17 | 昭慧广场—井上村 | |
+| 14号线 | 18 | 贺韶—机场西 | |
+| 15号线 | 13 | 细柳—东兆余 | |
+| 16号线 | 9 | 秦创原中心—诗经里 | |
+| 智轨1号线 | 4 | 昆明池—斗门 | |
 
 ### 预处理逻辑（Python data_loader.py）
 
-1. 读取stops数据，提取线路短名（如`地铁2号线(草滩--常宁宫)` → `地铁2号线`）
-2. 合并同一线路两个方向：只保留正方向（route_cn中第一个方向），确保sequence单调递增
-3. 按(站名, 线路短名)创建图节点，分配整数ID，记录经纬度
-4. 同线相邻站（按sequence排序）→ 行驶边，权重 = distance / 40(km/h) × 60(分钟)
+1. 读取stops和routes数据，提取线路短名（如`地铁2号线(草滩--常宁宫)` → `地铁2号线`）
+2. 读取routes的`loop`字段，标记环线（8号线loop=1）
+3. 合并同一线路两个方向：只保留正方向（route_cn中第一个方向），确保sequence单调递增
+   - **环线特殊处理**：8号线内环/外环各一条route记录，只保留内环方向。环线首尾站相同（山门口→...→山门口），`drop_duplicates`后山门口只保留一个节点，需额外添加闭合边（末站→首站），否则环不闭合
+4. 按(站名, 线路短名)创建图节点，分配整数ID，记录经纬度
+5. 同线相邻站（按sequence排序）→ 行驶边，权重 = distance / 40(km/h) × 60(分钟)
    - distance从segments表查找（按起止站名匹配）
    - 若segments中无匹配，按相邻站平均站距2分钟估算
-5. 同名站不同线路 → 换乘边，权重 = 2分钟
-6. 输出graph.txt（含坐标）、stations.json、routes.json
+6. 同名站不同线路 → 换乘边，权重 = 2分钟
+7. 输出graph.txt（含坐标）、stations.json、routes.json
 
 > **⚠ 方向合并策略**：不能使用`drop_duplicates`，因为两个方向的sequence值互为反序，混合后排序会乱序。必须只保留一个方向的所有站点。方法：按`route_cn`分组，取第一个方向（正方向），确保sequence单调递增。
+
+> **⚠ 环线处理策略**：8号线是环线，首尾站相同（山门口）。CPTOND格式中环线用`loop=1`标记，内环和外环分别作为两条route记录。预处理时只保留内环方向。**关键**：`drop_duplicates(subset=['name_cn', 'line_short'])`会将首尾重复的山门口去重为1个节点，`for i in range(len(stations)-1)`循环只创建相邻站边，不会创建闭合边（末站→首站）。必须在环线的边创建循环之后，额外添加从末站到首站的闭合边（双向）。segments数据中包含该闭合段的距离（已验证：554条segments = 456非环线 + 74环线含闭合段 + 24十五号线）。
 
 ### graph.txt格式
 
@@ -505,9 +514,11 @@ LINE_COLORS = {
     '地铁4号线': '#7B2D8E',
     '地铁5号线': '#00B7EE',
     '地铁6号线': '#D5A216',
+    '地铁8号线': '#00BFFF',
     '地铁9号线': '#FF6A00',
     '地铁10号线': '#008C95',
     '地铁14号线': '#8B5CF6',
+    '地铁15号线': '#C71585',
     '地铁16号线': '#E91E8C',
     '西咸新区智轨示范线1号线': '#999999',
 }
@@ -520,12 +531,17 @@ def load_data():
     stops = gpd.read_file(os.path.join(BASE_DIR, 'sian_metro_stops.shp'), encoding='utf-8')
     segments = gpd.read_file(os.path.join(BASE_DIR, 'sian_metro_segments.shp'), encoding='utf-8')
     stops_unique = gpd.read_file(os.path.join(BASE_DIR, 'sian_metro_stops_unique.shp'), encoding='utf-8')
-    return stops, segments, stops_unique
+    routes = gpd.read_file(os.path.join(BASE_DIR, 'sian_metro_routes.shp'), encoding='utf-8')
+    return stops, segments, stops_unique, routes
 
-def build_graph(stops, segments):
+def build_graph(stops, segments, routes):
     stops['line_short'] = stops['route_cn'].apply(extract_line_name)
 
-    # 只保留每条线路的正方向（第一个route_cn），避免两个方向sequence混合
+    loop_line_names = set()
+    for _, row in routes.iterrows():
+        if row.get('loop', 0) == 1:
+            loop_line_names.add(extract_line_name(row['route_cn']))
+
     line_directions = {}
     for _, row in stops.iterrows():
         key = row['line_short']
@@ -568,6 +584,27 @@ def build_graph(stops, segments):
             weight = dist_km / SPEED_KMH * 60.0
             from_id = node_map[(s1, line_name)]
             to_id = node_map[(s2, line_name)]
+            edges.append({
+                'from': from_id,
+                'to': to_id,
+                'weight': round(weight, 2),
+                'line': line_name,
+                'is_transfer': 0,
+            })
+            edges.append({
+                'from': to_id,
+                'to': from_id,
+                'weight': round(weight, 2),
+                'line': line_name,
+                'is_transfer': 0,
+            })
+        if line_name in loop_line_names and len(stations) > 1:
+            s_first, s_last = stations[0], stations[-1]
+            key = tuple(sorted([s_first, s_last]))
+            dist_km = seg_dist.get(key, 1.5)
+            weight = dist_km / SPEED_KMH * 60.0
+            from_id = node_map[(s_last, line_name)]
+            to_id = node_map[(s_first, line_name)]
             edges.append({
                 'from': from_id,
                 'to': to_id,
@@ -636,7 +673,9 @@ def write_stations_json(nodes, filepath):
     with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-def write_routes_json(nodes, filepath):
+def write_routes_json(nodes, filepath, loop_line_names=None):
+    if loop_line_names is None:
+        loop_line_names = set()
     route_map = {}
     for node in nodes:
         route_map.setdefault(node['line'], []).append({
@@ -646,6 +685,8 @@ def write_routes_json(nodes, filepath):
         })
     routes = []
     for line_name, stations in route_map.items():
+        if line_name in loop_line_names and len(stations) > 1:
+            stations.append(stations[0])
         routes.append({
             'name': line_name,
             'color': LINE_COLORS.get(line_name, '#666666'),
@@ -657,12 +698,17 @@ def write_routes_json(nodes, filepath):
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     print("Loading Shapefile data...")
-    stops, segments, stops_unique = load_data()
-    print(f"  Stops: {len(stops)}, Segments: {len(segments)}")
+    stops, segments, stops_unique, routes = load_data()
+    print(f"  Stops: {len(stops)}, Segments: {len(segments)}, Routes: {len(routes)}")
 
     print("Building graph...")
-    nodes, edges, node_map = build_graph(stops, segments)
+    nodes, edges, node_map = build_graph(stops, segments, routes)
     print(f"  Nodes: {len(nodes)}, Edges: {len(edges)}")
+
+    loop_line_names = set()
+    for _, row in routes.iterrows():
+        if row.get('loop', 0) == 1:
+            loop_line_names.add(extract_line_name(row['route_cn']))
 
     transfer_count = sum(1 for n in nodes if any(
         n['station'] == other['station'] and n['line'] != other['line']
@@ -672,7 +718,7 @@ def main():
 
     write_graph_txt(nodes, edges, os.path.join(OUTPUT_DIR, 'graph.txt'))
     write_stations_json(nodes, os.path.join(OUTPUT_DIR, 'stations.json'))
-    write_routes_json(nodes, os.path.join(OUTPUT_DIR, 'routes.json'))
+    write_routes_json(nodes, os.path.join(OUTPUT_DIR, 'routes.json'), loop_line_names)
     print("Done! Files written to data/")
 
 if __name__ == '__main__':
@@ -687,9 +733,9 @@ python data_loader.py
 ```
 
 预期输出：
-- `data/graph.txt` — 节点~250个，边~600条
-- `data/stations.json` — ~217个站点
-- `data/routes.json` — 11条线路
+- `data/graph.txt` — 节点~290个，边~720条
+- `data/stations.json` — ~250个站点
+- `data/routes.json` — 13条线路
 
 - [ ] **Step 3: 检查graph.txt前几行，确认格式正确**
 
@@ -1643,6 +1689,7 @@ python app.py
 | 1 | 小寨 | 华清池 | 2次(咸宁路/通化门→纺织城) |
 | 2 | 草滩 | 机场西(T1/T2/T3) | 1-2次 |
 | 3 | 创新港 | 保税区 | 2-3次 |
+| 4 | 山门口 | 细柳 | 1次(8号线→15号线换乘站) |
 
 分别测试mode=0和mode=1，验证结果合理性。
 
@@ -1900,7 +1947,7 @@ gcc -Wall -O2 -std=c99 test_core.c min_heap.c graph.c dijkstra.c -o test_core.ex
 - 起终点相同（应返回0时间0换乘）
 - 起终点不在图中（应返回"No path found"）
 - 起终点在同一线路上无换乘（应返回直达路径）
-- 环线站点（西安地铁无环线，暂不处理）
+- 环线站点（8号线为环线，首尾站相同，需额外添加闭合边使环闭合，双向边确保两方向通行）
 - stdin读取站名时的编码一致性（Python发送UTF-8，C读取原始字节）
 
 ---
@@ -2036,3 +2083,67 @@ gcc -Wall -O2 -std=c99 test_core.c min_heap.c graph.c dijkstra.c -o test_core.ex
 > **Bug 编号汇总**：#1(堆排序) #2(编码) #3(JSON空) #4(方向合并) #5(station_count) #6(marker崩溃) #7(前端空白) #8(引用过期) #9(DOM销毁)
 >
 > 六轮 TDD 审查共发现并修复 **10 个问题**（3 严重 + 4 中等 + 3 低），覆盖数据结构正确性、操作系统编码、JSON 格式、DOM 生命周期、异常处理完整性等维度。方案现已高度稳定，可进入实现阶段。
+
+---
+
+## 14. 第七轮审查报告（8号线/15号线数据更新后）
+
+### 已发现并修复的关键Bug
+
+#### Bug #10（严重）：8号线环线闭合边缺失
+
+**问题**：8号线是环线，首尾站相同（山门口）。原设计文档声称"相邻站连边自然形成环，无需额外处理"，这是**错误假设**。实际存在两个问题：
+
+1. **`drop_duplicates`去重首尾站**：8号线内环stops数据中，山门口同时出现在sequence=1和sequence=37。`drop_duplicates(subset=['name_cn', 'line_short'])`将山门口去重为1个节点，环线从37站变为36个唯一节点
+2. **边创建循环不创建闭合边**：`for i in range(len(stations) - 1)`只创建相邻站边（stations[0]→stations[1], ..., stations[34]→stations[35]），不会创建从末站回到首站的闭合边
+
+**后果**：8号线环不闭合。Dijkstra无法找到经过闭合段的路径。例如从山门口的前一站到山门口的后一站，如果最短路径是反向绕环一圈，算法无法找到。
+
+**验证**：segments数据包含闭合段距离。计算验证：554条segments = 456（11条非环线双向段）+ 74（8号线内环+外环各37段，含闭合段）+ 24（15号线双向段）。`seg_dist`字典中存在闭合段的距离，修复后可直接查找。
+
+**修复**：
+1. 将`loop_routes`改为`loop_line_names`（存储线路短名如"地铁8号线"而非route_cn），使其可在边创建循环中使用
+2. 在每条线路的边创建循环后，检查`if line_name in loop_line_names`，若为环线则额外添加从`stations[-1]`到`stations[0]`的闭合边（双向）
+3. 更新预处理逻辑和环线处理策略说明，纠正"自然形成环"的错误描述
+
+#### Bug #11（低）：`loop_routes`变量计算后未使用
+
+**问题**：`build_graph`中计算了`loop_routes`集合（存储环线的route_cn），但从未在任何逻辑中引用。环线处理描述仅停留在文档层面，代码中无任何环线特殊处理。
+
+**修复**：将`loop_routes`改为`loop_line_names`（通过`extract_line_name`转换为线路短名），在边创建循环中使用。
+
+#### Bug #12（低）：前端8号线环线显示不闭合
+
+**问题**：`write_routes_json`输出的8号线站点列表是开放折线（首站山门口→...→末站），`drawRoutes`中`L.polyline`绘制开放路径，地图上8号线会有缺口。
+
+**修复**：`write_routes_json`增加`loop_line_names`参数，对环线在站点列表末尾追加首站（`stations.append(stations[0])`），使`L.polyline`绘制闭合环。`main`函数调用时传入`loop_line_names`。
+
+### 已验证无问题的部分
+
+| 模块 | 审查结论 |
+|------|---------|
+| `extract_line_name`对8号线 | "地铁8号线(内环)" → 正则匹配"地铁8号线" ✅ |
+| `extract_line_name`对15号线 | "地铁15号线(细柳--东兆余)" → 正则匹配"地铁15号线" ✅ |
+| 8号线方向合并 | 内环/外环同属"地铁8号线"line_short，`line_directions`只保留第一个（内环） ✅ |
+| 15号线非环线处理 | loop=0，走常规双向线路逻辑，无特殊处理 ✅ |
+| 闭合边距离查找 | segments含闭合段，`seg_dist.get(key, 1.5)`可正确查找 ✅ |
+| 闭合边与换乘边不冲突 | 闭合边is_transfer=0，与换乘边(is_transfer=1)独立 ✅ |
+| `write_routes_json`追加首站 | 仅影响routes.json可视化，不影响graph.txt路径计算 ✅ |
+| 1号线终点站名 | route_cn含"咸阳西站"但stops中name_cn为"咸阳西"，与原设计一致 ✅ |
+| 智轨1号线站名 | route_cn含"昆明池站"但stops中name_cn可能为"昆明池"，segments查找有fallback ✅ |
+
+### 审查总结（七轮累计）
+
+| 轮次 | 严重Bug | 中等Bug | 低问题 | 累计修复 |
+|------|---------|---------|--------|---------|
+| 第1轮 | #1 堆排序 | - | - | 1 |
+| 第2轮 | #2 编码 | #3 JSON空, #6** | #4 方向合并 | 4 |
+| 第3轮 | - | #5 station_count | - | 5 |
+| 第4轮 | - | #7** 前端空白 | #8** 引用过期 | 7 |
+| 第5轮 | #6* marker崩溃 | - | #7 测试单向, #8 命令位置 | 8 |
+| 第6轮 | - | #9 DOM销毁 | #3** FileNotFoundError | 10 |
+| 第7轮 | #10 环线闭合边 | - | #11 loop_routes未使用, #12 环线显示不闭合 | 13 |
+
+> **Bug 编号汇总**：#1(堆排序) #2(编码) #3(JSON空) #4(方向合并) #5(station_count) #6(marker崩溃) #7(前端空白) #8(引用过期) #9(DOM销毁) #10(环线闭合边) #11(loop_routes未使用) #12(环线显示不闭合)
+>
+> 七轮 TDD 审查共发现并修复 **13 个问题**（4 严重 + 4 中等 + 5 低），覆盖数据结构正确性、操作系统编码、JSON 格式、DOM 生命周期、异常处理完整性、环线图论正确性等维度。方案现已高度稳定，可进入实现阶段。

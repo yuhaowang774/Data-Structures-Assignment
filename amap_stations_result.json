@@ -1,0 +1,356 @@
+{
+  "8号线": [
+    {
+      "name_cn": "山门口",
+      "name_en": "Shanmenkou",
+      "transfer": "7号线(规划)",
+      "lon": 108.93421,
+      "lat": 34.377676
+    },
+    {
+      "name_cn": "安化门",
+      "name_en": "Anhuamen",
+      "transfer": null,
+      "lon": 108.933616,
+      "lat": 34.37679
+    },
+    {
+      "name_cn": "东仪路",
+      "name_en": "Dongyilu",
+      "transfer": "11号线(规划)",
+      "lon": 108.933529,
+      "lat": 34.377494
+    },
+    {
+      "name_cn": "电视塔",
+      "name_en": "Dianshita",
+      "transfer": "2号线",
+      "lon": 108.819577,
+      "lat": 34.252256
+    },
+    {
+      "name_cn": "大唐不夜城",
+      "name_en": "Datangbuyecheng",
+      "transfer": null,
+      "lon": 108.933584,
+      "lat": 34.377345
+    },
+    {
+      "name_cn": "曲江池西",
+      "name_en": "Qujiangchixi",
+      "transfer": "4号线",
+      "lon": 108.97026,
+      "lat": 34.198864
+    },
+    {
+      "name_cn": "寒窑",
+      "name_en": "Hanyao",
+      "transfer": null,
+      "lon": 108.93421,
+      "lat": 34.377676
+    },
+    {
+      "name_cn": "新开门",
+      "name_en": "Xinkaimen",
+      "transfer": null,
+      "lon": 108.933616,
+      "lat": 34.37679
+    },
+    {
+      "name_cn": "缪家寨",
+      "name_en": "Miaojiazhai",
+      "transfer": null,
+      "lon": 108.933439,
+      "lat": 34.377735
+    },
+    {
+      "name_cn": "植物园",
+      "name_en": "Zhiwuyuan",
+      "transfer": null,
+      "lon": 109.020466,
+      "lat": 34.211786
+    },
+    {
+      "name_cn": "马腾空",
+      "name_en": "Matengkong",
+      "transfer": "5号线",
+      "lon": 108.933868,
+      "lat": 34.376578
+    },
+    {
+      "name_cn": "东等驾坡",
+      "name_en": "Dongdengjiapo",
+      "transfer": null,
+      "lon": 108.933083,
+      "lat": 34.377045
+    },
+    {
+      "name_cn": "西等驾坡",
+      "name_en": "Xidengjiapo",
+      "transfer": null,
+      "lon": 108.933616,
+      "lat": 34.37679
+    },
+    {
+      "name_cn": "万寿南路",
+      "name_en": "Wanshounanlu",
+      "transfer": "6号线",
+      "lon": 108.819577,
+      "lat": 34.252256
+    },
+    {
+      "name_cn": "韩森寨",
+      "name_en": "Hansenzhai",
+      "transfer": null,
+      "lon": 108.819577,
+      "lat": 34.252256
+    },
+    {
+      "name_cn": "万寿路",
+      "name_en": "Wanshoulu",
+      "transfer": "1号线",
+      "lon": 109.00944,
+      "lat": 34.252587
+    },
+    {
+      "name_cn": "幸福林带北",
+      "name_en": "Xingfulindai Bei",
+      "transfer": null,
+      "lon": 109.00948,
+      "lat": 34.283813
+    },
+    {
+      "name_cn": "米家崖",
+      "name_en": "Mijiaya",
+      "transfer": null,
+      "lon": 108.819577,
+      "lat": 34.252256
+    },
+    {
+      "name_cn": "广泰门",
+      "name_en": "Guangtaimen",
+      "transfer": "3号线",
+      "lon": 109.008288,
+      "lat": 34.312215
+    },
+    {
+      "name_cn": "北辰东路",
+      "name_en": "Beichendonglu",
+      "transfer": null,
+      "lon": 108.933529,
+      "lat": 34.377494
+    },
+    {
+      "name_cn": "井上村",
+      "name_en": "Jingshangcun",
+      "transfer": "10号线",
+      "lon": 108.93421,
+      "lat": 34.377676
+    },
+    {
+      "name_cn": "余家寨",
+      "name_en": "Yujiazhai",
+      "transfer": "4号线",
+      "lon": 108.968339,
+      "lat": 34.318654
+    },
+    {
+      "name_cn": "市第三医院",
+      "name_en": "Shi Di San Yiyuan",
+      "transfer": null,
+      "lon": 108.819577,
+      "lat": 34.252256
+    },
+    {
+      "name_cn": "市图书馆",
+      "name_en": "Shi Tushuguan",
+      "transfer": "2号线",
+      "lon": 108.942493,
+      "lat": 34.32255
+    },
+    {
+      "name_cn": "霸城门",
+      "name_en": "Bachengmen",
+      "transfer": null,
+      "lon": 108.933931,
+      "lat": 34.378432
+    },
+    {
+      "name_cn": "大风阁",
+      "name_en": "Dafengge",
+      "transfer": null,
+      "lon": 108.819577,
+      "lat": 34.252256
+    },
+    {
+      "name_cn": "红庙坡",
+      "name_en": "Hongmiaopo",
+      "transfer": null,
+      "lon": 108.933836,
+      "lat": 34.378242
+    },
+    {
+      "name_cn": "景曜门",
+      "name_en": "Jingyaomen",
+      "transfer": null,
+      "lon": 108.933729,
+      "lat": 34.377962
+    },
+    {
+      "name_cn": "光化门",
+      "name_en": "Guanghuamen",
+      "transfer": null,
+      "lon": 108.933524,
+      "lat": 34.37857
+    },
+    {
+      "name_cn": "白家口",
+      "name_en": "Baijiakou",
+      "transfer": null,
+      "lon": 108.933439,
+      "lat": 34.377735
+    },
+    {
+      "name_cn": "开远门",
+      "name_en": "Kaiyuanmen",
+      "transfer": "1号线",
+      "lon": 108.887883,
+      "lat": 34.270981
+    },
+    {
+      "name_cn": "土门",
+      "name_en": "Tumen",
+      "transfer": null,
+      "lon": 109.281346,
+      "lat": 34.297851
+    },
+    {
+      "name_cn": "金光门",
+      "name_en": "Jinguangmen",
+      "transfer": "5号线",
+      "lon": 108.885003,
+      "lat": 34.253091
+    },
+    {
+      "name_cn": "延平门",
+      "name_en": "Yanpingmen",
+      "transfer": "3号线",
+      "lon": 108.882632,
+      "lat": 34.238826
+    },
+    {
+      "name_cn": "科技二路",
+      "name_en": "Keji Er Lu",
+      "transfer": null,
+      "lon": 108.885157,
+      "lat": 34.227296
+    },
+    {
+      "name_cn": "木塔寺西",
+      "name_en": "Mutasi Xi",
+      "transfer": null,
+      "lon": 108.933765,
+      "lat": 34.378403
+    },
+    {
+      "name_cn": "省体育馆",
+      "name_en": "Sheng Tiyuguan",
+      "transfer": "6号线",
+      "lon": 108.885152,
+      "lat": 34.204635
+    }
+  ],
+  "15号线": [
+    {
+      "name_cn": "细柳",
+      "name_en": "Xiliu",
+      "transfer": null,
+      "lon": 108.93421,
+      "lat": 34.377676
+    },
+    {
+      "name_cn": "府君庙",
+      "name_en": "Fujunmiao",
+      "transfer": null,
+      "lon": 108.93421,
+      "lat": 34.377676
+    },
+    {
+      "name_cn": "祝村西",
+      "name_en": "Zhucun Xi",
+      "transfer": "12号线(规划)",
+      "lon": 108.933034,
+      "lat": 34.377229
+    },
+    {
+      "name_cn": "祝村",
+      "name_en": "Zhucun",
+      "transfer": null,
+      "lon": 108.93462,
+      "lat": 34.377701
+    },
+    {
+      "name_cn": "郭杜西",
+      "name_en": "Guodu Xi",
+      "transfer": "6号线",
+      "lon": 108.934101,
+      "lat": 34.378199
+    },
+    {
+      "name_cn": "郭杜",
+      "name_en": "Guodu",
+      "transfer": null,
+      "lon": 108.93462,
+      "lat": 34.377701
+    },
+    {
+      "name_cn": "樱花广场",
+      "name_en": "Yinghua Guangchang",
+      "transfer": null,
+      "lon": 108.819577,
+      "lat": 34.252256
+    },
+    {
+      "name_cn": "邮电大学",
+      "name_en": "Youdian Daxue",
+      "transfer": "7号线(规划)",
+      "lon": 108.93462,
+      "lat": 34.377701
+    },
+    {
+      "name_cn": "长安广场",
+      "name_en": "Chang'an Guangchang",
+      "transfer": null,
+      "lon": 108.933083,
+      "lat": 34.377045
+    },
+    {
+      "name_cn": "航天城",
+      "name_en": "Hangtiancheng",
+      "transfer": "2号线",
+      "lon": 108.940014,
+      "lat": 34.159624
+    },
+    {
+      "name_cn": "皇子坡",
+      "name_en": "Huangzipo",
+      "transfer": null,
+      "lon": 108.93421,
+      "lat": 34.377676
+    },
+    {
+      "name_cn": "东长安街",
+      "name_en": "Dong Chang'an Jie",
+      "transfer": "4号线",
+      "lon": 108.751869,
+      "lat": 34.271072
+    },
+    {
+      "name_cn": "东兆余",
+      "name_en": "Dongzhaoyu",
+      "transfer": null,
+      "lon": 108.819577,
+      "lat": 34.252256
+    }
+  ]
+}

@@ -1,47 +1,60 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>西安地铁换乘最优路径计算器</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-<div id="sidebar">
-    <h2>西安地铁换乘计算器</h2>
-    <div class="control-group">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>西安地铁换乘最优路径计算器</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <div id="sidebar">
+      <h2>西安地铁换乘计算器</h2>
+      <div class="control-group">
         <label>起点站：</label>
         <div class="select-wrapper">
-            <input type="text" id="start-input" placeholder="输入或选择起点站" autocomplete="off">
-            <div id="start-dropdown" class="dropdown"></div>
+          <input
+            type="text"
+            id="start-input"
+            placeholder="输入或选择起点站"
+            autocomplete="off"
+          />
+          <div id="start-dropdown" class="dropdown"></div>
         </div>
-    </div>
-    <div class="control-group">
+      </div>
+      <div class="control-group">
         <label>终点站：</label>
         <div class="select-wrapper">
-            <input type="text" id="end-input" placeholder="输入或选择终点站" autocomplete="off">
-            <div id="end-dropdown" class="dropdown"></div>
+          <input
+            type="text"
+            id="end-input"
+            placeholder="输入或选择终点站"
+            autocomplete="off"
+          />
+          <div id="end-dropdown" class="dropdown"></div>
         </div>
-    </div>
-    <div class="btn-group">
+      </div>
+      <div class="btn-group">
         <button id="btn-time" onclick="queryPath(0)">时间最短</button>
         <button id="btn-transfer" onclick="queryPath(1)">换乘最少</button>
-    </div>
-    <div id="result" class="hidden">
-        <div id="result-error" class="error-msg" style="display:none"></div>
+      </div>
+      <div id="result" class="hidden">
+        <div id="result-error" class="error-msg" style="display: none"></div>
         <div id="result-content">
-            <div class="result-header">
-                <span id="result-time"></span>
-                <span id="result-transfers"></span>
-            </div>
-            <div id="result-stations"></div>
+          <div class="result-header">
+            <span id="result-time"></span>
+            <span id="result-transfers"></span>
+          </div>
+          <div id="result-stations"></div>
         </div>
+      </div>
     </div>
-</div>
-<div id="map"></div>
+    <div id="map"></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="/static/script.js"></script>
-</body>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/static/script.js"></script>
+  </body>
 </html>
