@@ -1,16 +1,16 @@
-class _HeapItem {
+class HeapItem {
   final int nodeId;
   final double cost;
-  _HeapItem(this.nodeId, this.cost);
+  HeapItem(this.nodeId, this.cost);
 }
 
 class MinHeap {
-  final List<_HeapItem> _heap = [];
+  final List<HeapItem> _heap = [];
 
   bool get isEmpty => _heap.isEmpty;
 
   void insert(int nodeId, double cost) {
-    _heap.add(_HeapItem(nodeId, cost));
+    _heap.add(HeapItem(nodeId, cost));
     var i = _heap.length - 1;
     while (i > 0) {
       final parent = (i - 1) ~/ 2;
@@ -22,7 +22,7 @@ class MinHeap {
     }
   }
 
-  _HeapItem? extractMin() {
+  HeapItem? extractMin() {
     if (_heap.isEmpty) return null;
     final min = _heap[0];
     final last = _heap.removeLast();
