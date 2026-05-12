@@ -4,6 +4,7 @@ import 'package:flutter_app/models/station.dart';
 import 'package:flutter_app/models/route.dart';
 import 'package:flutter_app/services/data_loader.dart';
 import 'package:flutter_app/services/pathfinding.dart';
+import 'package:flutter_app/services/coord_transform.dart';
 import 'package:flutter_app/widgets/map_view.dart';
 import 'package:flutter_app/widgets/search_panel.dart';
 import 'package:flutter_app/widgets/result_panel.dart';
@@ -73,12 +74,16 @@ class _HomePageState extends State<HomePage> {
 
     if (result.error == null) {
       final pathPoints = result.path
-          .map((n) => LatLng(n.lat, n.lon))
+          .map((n) {
+            final gcj = wgs84ToGcj02(n.lat, n.lon);
+            return LatLng(gcj.lat, gcj.lon);
+          })
           .toList();
       final transferPoints = result.transferStations
           .map((name) {
             final station = _stations!.firstWhere((s) => s.name == name);
-            return LatLng(station.lat, station.lon);
+            final gcj = wgs84ToGcj02(station.lat, station.lon);
+            return LatLng(gcj.lat, gcj.lon);
           })
           .toList();
       _mapViewKey.currentState?.updatePath(pathPoints, transferPoints);

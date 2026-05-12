@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_app/models/route.dart';
 import 'package:flutter_app/models/station.dart';
+import 'package:flutter_app/services/coord_transform.dart';
 
 class MapView extends StatefulWidget {
   final List<Route> routes;
@@ -63,9 +64,10 @@ class MapViewState extends State<MapView> {
   @override
   Widget build(BuildContext context) {
     final routePolylines = widget.routes.map((route) {
-      final points = route.stations
-          .map((s) => LatLng(s.lat, s.lon))
-          .toList();
+      final points = route.stations.map((s) {
+        final gcj = wgs84ToGcj02(s.lat, s.lon);
+        return LatLng(gcj.lat, gcj.lon);
+      }).toList();
       return Polyline(
         points: points,
         color: _parseColor(route.color),
@@ -74,12 +76,11 @@ class MapViewState extends State<MapView> {
     }).toList();
 
     final stationCircles = widget.stations.map((s) {
+      final gcj = wgs84ToGcj02(s.lat, s.lon);
       return CircleMarker(
-        point: LatLng(s.lat, s.lon),
+        point: LatLng(gcj.lat, gcj.lon),
         radius: s.isTransfer ? 6 : 4,
-        color: s.isTransfer
-            ? const Color(0xFFE67E22)
-            : const Color(0xFF4A90D9),
+        color: s.isTransfer ? const Color(0xFFE67E22) : const Color(0xFF4A90D9),
         borderColor: Colors.white,
         borderStrokeWidth: 1.5,
       );
@@ -88,16 +89,19 @@ class MapViewState extends State<MapView> {
     return FlutterMap(
       mapController: _mapController,
       options: MapOptions(
-        initialCenter: LatLng(34.261, 108.942),
+        initialCenter: () {
+          final c = wgs84ToGcj02(34.261, 108.942);
+          return LatLng(c.lat, c.lon);
+        }(),
         initialZoom: 12.0,
         minZoom: 10.0,
         maxZoom: 18.0,
       ),
       children: [
         TileLayer(
-          urlTemplate:
-              'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
-          subdomains: ['1', '2', '3', '4'],
+          urlTemplate: 'http://{s}.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&style=8',
+          subdomains: ['wprd01', 'wprd02', 'wprd03', 'wprd04'],
+          userAgentPackageName: 'com.example.flutter_app',
         ),
         PolylineLayer(
           polylines: [...routePolylines, ..._queryPolylines],
