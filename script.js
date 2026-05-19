@@ -337,6 +337,19 @@ function loadData() {
       buildRouteIndex();
       drawRoutes();
       drawStations();
+      if (typeof ScheduleConfig !== "undefined") {
+        ScheduleConfig.init({
+          onPeriodChange: function () {
+            buildAdjList();
+            if (typeof ScheduleConfigUI !== "undefined") {
+              ScheduleConfigUI.refresh();
+            }
+          },
+        });
+      }
+      if (typeof ScheduleConfigUI !== "undefined") {
+        ScheduleConfigUI.init();
+      }
     })
     .catch(function () {
       alert("加载数据失败");
@@ -344,18 +357,22 @@ function loadData() {
 }
 
 function buildAdjList() {
-  adjList = {};
-  for (var i = 0; i < graphData.nodes.length; i++) {
-    adjList[graphData.nodes[i].id] = [];
-  }
-  for (var j = 0; j < graphData.edges.length; j++) {
-    var e = graphData.edges[j];
-    adjList[e.from].push({
-      to: e.to,
-      weight: e.weight,
-      line: e.line,
-      is_transfer: e.is_transfer,
-    });
+  if (typeof ScheduleConfig !== "undefined") {
+    adjList = ScheduleConfig.buildAdjustedAdjList(graphData);
+  } else {
+    adjList = {};
+    for (var i = 0; i < graphData.nodes.length; i++) {
+      adjList[graphData.nodes[i].id] = [];
+    }
+    for (var j = 0; j < graphData.edges.length; j++) {
+      var e = graphData.edges[j];
+      adjList[e.from].push({
+        to: e.to,
+        weight: e.weight,
+        line: e.line,
+        is_transfer: e.is_transfer,
+      });
+    }
   }
 }
 
@@ -455,10 +472,18 @@ function drawRoutes() {
       route.stations.map(function (s) {
         return [s.lat, s.lon];
       });
-    var layer = L.polyline(coords, { color: route.color, weight: 3, opacity: 0.7 })
+    var layer = L.polyline(coords, {
+      color: route.color,
+      weight: 3,
+      opacity: 0.7,
+    })
       .bindTooltip(route.name, { sticky: true })
       .addTo(map);
-    routeLayers.push({ name: route.name, layer: layer, originalStyle: { color: route.color, weight: 3, opacity: 0.7 } });
+    routeLayers.push({
+      name: route.name,
+      layer: layer,
+      originalStyle: { color: route.color, weight: 3, opacity: 0.7 },
+    });
   });
 }
 
@@ -491,8 +516,16 @@ function drawStations() {
       fillColor: color,
       fillOpacity: 0.8,
       weight: 1.5,
+    });
+    var hitArea = L.circleMarker([s.lat, s.lon], {
+      radius: 14,
+      color: "transparent",
+      fillColor: "transparent",
+      fillOpacity: 0,
+      weight: 0,
+      interactive: true,
     }).bindTooltip(tooltipHtml, { className: "station-tooltip-container" });
-    marker.on("click", function () {
+    hitArea.on("click", function () {
       if (!activeInputId) return;
       var input = document.getElementById(activeInputId);
       input.value = s.name;
@@ -502,8 +535,252 @@ function drawStations() {
       setActiveInput(null);
     });
     marker.addTo(map);
-    stationMarkers.push({ name: s.name, lines: s.lines, marker: marker, originalStyle: { radius: radius, color: color, fillColor: color, fillOpacity: 0.8, weight: 1.5 } });
+    hitArea.addTo(map);
+    stationMarkers.push({
+      name: s.name,
+      lines: s.lines,
+      marker: marker,
+      originalStyle: {
+        radius: radius,
+        color: color,
+        fillColor: color,
+        fillOpacity: 0.8,
+        weight: 1.5,
+      },
+    });
   });
+}
+
+function dijkstraWithPenalty(startName, endName, mode, penaltyWeights) {
+  var nodes = graphData.nodes;
+  var n = nodes.length;
+
+  var startNodes = [];
+  var endNodes = [];
+  for (var i = 0; i < n; i++) {
+    if (nodes[i].station === startName) startNodes.push(i);
+    if (nodes[i].station === endName) endNodes.push(i);
+  }
+
+  if (startNodes.length === 0 || endNodes.length === 0) {
+    return { path: [], error: "No path found" };
+  }
+
+  var endSet = {};
+  for (var e = 0; e < endNodes.length; e++) {
+    endSet[endNodes[e]] = true;
+  }
+
+  var INF = 1e18;
+  var dist = new Array(n);
+  var realDist = new Array(n);
+  var transferArr = new Array(n);
+  var visited = new Array(n);
+  var prev = new Array(n);
+  for (var i = 0; i < n; i++) {
+    dist[i] = INF;
+    realDist[i] = INF;
+    transferArr[i] = 0;
+    visited[i] = false;
+    prev[i] = -1;
+  }
+
+  var heap = new MinHeap();
+
+  for (var s = 0; s < startNodes.length; s++) {
+    var si = startNodes[s];
+    dist[si] = 0;
+    realDist[si] = 0;
+    transferArr[si] = 0;
+    heap.insert({ nodeId: si, cost: 0, totalTime: 0, transfers: 0 });
+  }
+
+  var foundNode = -1;
+
+  while (!heap.isEmpty()) {
+    var cur = heap.extractMin();
+    if (cur === null) break;
+    if (visited[cur.nodeId]) continue;
+    visited[cur.nodeId] = true;
+
+    if (endSet[cur.nodeId]) {
+      foundNode = cur.nodeId;
+      break;
+    }
+
+    var edges = adjList[cur.nodeId];
+    if (!edges) continue;
+    for (var j = 0; j < edges.length; j++) {
+      var edge = edges[j];
+      var neighbor = edge.to;
+      if (visited[neighbor]) continue;
+
+      var penalty = (penaltyWeights && penaltyWeights[cur.nodeId]) || 0;
+      var newRealTime = realDist[cur.nodeId] + edge.weight;
+      var newPenalizedTime = dist[cur.nodeId] + edge.weight + penalty;
+      var newTransfers = transferArr[cur.nodeId] + edge.is_transfer;
+
+      var newCost;
+      if (mode === 0) {
+        newCost = newPenalizedTime;
+      } else {
+        newCost = newTransfers + newPenalizedTime * 1e-6;
+      }
+
+      var oldCost =
+        dist[neighbor] === INF
+          ? INF
+          : mode === 0
+            ? dist[neighbor]
+            : transferArr[neighbor] + dist[neighbor] * 1e-6;
+
+      if (newCost < oldCost) {
+        dist[neighbor] = newPenalizedTime;
+        realDist[neighbor] = newRealTime;
+        transferArr[neighbor] = newTransfers;
+        prev[neighbor] = cur.nodeId;
+        heap.insert({
+          nodeId: neighbor,
+          cost: newCost,
+          totalTime: newPenalizedTime,
+          transfers: newTransfers,
+        });
+      }
+    }
+  }
+
+  if (foundNode === -1) {
+    return { path: [], error: "No path found" };
+  }
+
+  var path = [];
+  var curNode = foundNode;
+  while (curNode !== -1) {
+    path.unshift(curNode);
+    curNode = prev[curNode];
+  }
+
+  var pathResult = [];
+  for (var i = 0; i < path.length; i++) {
+    var node = nodes[path[i]];
+    pathResult.push({
+      station: node.station,
+      line: node.line,
+      lon: node.lon,
+      lat: node.lat,
+    });
+  }
+
+  var transferStations = [];
+  var uniqueCount = 0;
+  var lastStation = "";
+  for (var i = 0; i < pathResult.length; i++) {
+    if (pathResult[i].station !== lastStation) {
+      uniqueCount++;
+      lastStation = pathResult[i].station;
+    }
+    if (i > 0 && i < pathResult.length - 1) {
+      if (
+        pathResult[i].station === pathResult[i - 1].station &&
+        pathResult[i].line !== pathResult[i - 1].line
+      ) {
+        transferStations.push(pathResult[i].station);
+      }
+    }
+  }
+
+  return {
+    path: pathResult,
+    total_time: realDist[foundNode],
+    transfers: transferArr[foundNode],
+    transfer_stations: transferStations,
+    station_count: uniqueCount,
+  };
+}
+
+var allPathResults = [];
+var selectedAltIndex = 0;
+
+function findAlternativePaths(start, end, mode) {
+  var results = [];
+
+  var primary = dijkstraWithPenalty(start, end, mode, null);
+  if (!primary || primary.error || primary.path.length === 0) {
+    return results;
+  }
+  results.push({ data: primary, label: "最优方案" });
+
+  var startStation = primary.path[0].station;
+  var endStation = primary.path[primary.path.length - 1].station;
+
+  var midStations = [];
+  var seenStation = {};
+  for (var i = 1; i < primary.path.length - 1; i++) {
+    var st = primary.path[i].station;
+    if (st !== startStation && st !== endStation && !seenStation[st]) {
+      seenStation[st] = true;
+      midStations.push(st);
+    }
+  }
+
+  for (var si = 0; si < midStations.length && results.length < 5; si++) {
+    var avoidSt = midStations[si];
+    var penalties = new Array(graphData.nodes.length).fill(0);
+    for (var gi = 0; gi < graphData.nodes.length; gi++) {
+      if (graphData.nodes[gi].station === avoidSt) {
+        penalties[gi] = 10000;
+      }
+    }
+
+    var alt = dijkstraWithPenalty(start, end, mode, penalties);
+    if (alt && !alt.error && alt.path.length > 0) {
+      var isDup = false;
+      for (var ri = 0; ri < results.length; ri++) {
+        var existing = results[ri].data;
+        if (
+          Math.abs(existing.total_time - alt.total_time) < 0.01 &&
+          existing.transfers === alt.transfers
+        ) {
+          var sameCount = 0;
+          var minLen = Math.min(existing.path.length, alt.path.length);
+          var maxLen = Math.max(existing.path.length, alt.path.length);
+          for (var ci = 0; ci < minLen; ci++) {
+            if (
+              existing.path[ci].station === alt.path[ci].station &&
+              existing.path[ci].line === alt.path[ci].line
+            ) {
+              sameCount++;
+            }
+          }
+          if (sameCount / maxLen > 0.8) {
+            isDup = true;
+            break;
+          }
+        }
+      }
+
+      if (!isDup) {
+        results.push({
+          data: alt,
+          label: "备用(避开" + avoidSt + ")",
+        });
+      }
+    }
+  }
+
+  results.sort(function (a, b) {
+    if (a.data.total_time !== b.data.total_time) {
+      return a.data.total_time - b.data.total_time;
+    }
+    return a.data.transfers - b.data.transfers;
+  });
+
+  results[0].label = "最优方案";
+  for (var ri = 1; ri < results.length; ri++) {
+    results[ri].label = "备用方案" + ri;
+  }
+
+  return results;
 }
 
 function queryPath(mode) {
@@ -518,13 +795,16 @@ function queryPath(mode) {
 
   document.getElementById("result").className = "hidden";
 
-  var data = dijkstra(start, end, mode);
-  if (!data || data.error) {
-    showError(data ? data.error : "查询失败");
+  allPathResults = findAlternativePaths(start, end, mode);
+  if (allPathResults.length === 0) {
+    showError("未找到路径");
     return;
   }
-  showResult(data, start, end);
-  highlightPath(data);
+
+  selectedAltIndex = 0;
+  showResult(allPathResults, start, end);
+  highlightPath(allPathResults, 0);
+  renderAlternativeList();
 }
 
 function showError(msg) {
@@ -535,14 +815,41 @@ function showError(msg) {
   document.getElementById("result-content").style.display = "none";
 }
 
-function showResult(data, start, end) {
+function showResult(allResults, start, end) {
+  var data = allResults[selectedAltIndex].data;
+  var label = allResults[selectedAltIndex].label;
   var result = document.getElementById("result");
   result.className = "";
   document.getElementById("result-error").style.display = "none";
   document.getElementById("result-content").style.display = "";
   var totalTime = data.total_time + 3;
-  document.getElementById("result-time").textContent =
-    "总时间: " + totalTime.toFixed(2) + " 分钟（含等车3分钟）";
+  var periodInfo = "";
+  if (typeof ScheduleConfig !== "undefined") {
+    var cp = ScheduleConfig.getCurrentPeriod();
+    if (cp) {
+      var mul = ScheduleConfig.getMultipliers()[cp.type] || {
+        run: 1.0,
+        transfer: 1.0,
+      };
+      periodInfo =
+        ' <span class="period-badge ' +
+        (cp.type === "peak" ? "peak" : "offpeak") +
+        '">' +
+        cp.name +
+        " (运行×" +
+        mul.run +
+        " 换乘×" +
+        mul.transfer +
+        ")</span>";
+    }
+  }
+  document.getElementById("result-time").innerHTML =
+    '<span class="result-label-badge">' +
+    label +
+    "</span> 总时间: " +
+    totalTime.toFixed(2) +
+    " 分钟（含等车3分钟）" +
+    periodInfo;
   document.getElementById("result-transfers").textContent =
     "换乘: " + data.transfers + " 次";
 
@@ -578,7 +885,65 @@ function showResult(data, start, end) {
   document.getElementById("result-stations").innerHTML = html;
 }
 
-function highlightPath(data) {
+function renderAlternativeList() {
+  var container = document.getElementById("alternatives-container");
+  if (!container) return;
+  if (allPathResults.length <= 1) {
+    container.style.display = "none";
+    return;
+  }
+  container.style.display = "";
+  var listEl = document.getElementById("alternatives-list");
+  var countEl = document.getElementById("alt-count");
+  if (countEl) countEl.textContent = allPathResults.length - 1;
+  var html = "";
+  for (var i = 1; i < allPathResults.length; i++) {
+    var r = allPathResults[i];
+    var totalTime = r.data.total_time + 3;
+    var isActive = selectedAltIndex === i;
+    var itemClass = "alt-item" + (isActive ? " alt-item-active" : "");
+    html +=
+      '<div class="' + itemClass + '" onclick="selectAlternative(' + i + ')">';
+    html += '<div class="alt-item-header">';
+    html += '<span class="alt-item-num">' + i + "</span>";
+    html += '<span class="alt-item-label">' + r.label + "</span>";
+    html +=
+      '<span class="alt-item-stats">' +
+      totalTime.toFixed(1) +
+      "分 / " +
+      r.data.transfers +
+      "换</span>";
+    html += "</div></div>";
+  }
+  listEl.innerHTML = html;
+}
+
+function selectAlternative(index) {
+  if (index < 0 || index >= allPathResults.length) return;
+  selectedAltIndex = index;
+  showResult(allPathResults, null, null);
+  highlightPath(allPathResults, index);
+  renderAlternativeList();
+}
+
+var altSectionExpanded = true;
+function toggleAltSection() {
+  var list = document.getElementById("alternatives-list");
+  var icon = document.getElementById("alt-toggle-icon");
+  if (!list) return;
+  altSectionExpanded = !altSectionExpanded;
+  if (altSectionExpanded) {
+    list.style.display = "";
+    icon.textContent = "▼";
+  } else {
+    list.style.display = "none";
+    icon.textContent = "▶";
+  }
+}
+
+function highlightPath(allResults, index) {
+  var data = allResults[index].data;
+
   if (pathLayer) {
     map.removeLayer(pathLayer);
     pathLayer = null;
@@ -603,16 +968,30 @@ function highlightPath(data) {
 
   stationMarkers.forEach(function (sm) {
     if (pathStations[sm.name]) {
-      sm.marker.setStyle({ radius: 7, fillOpacity: 1, weight: 2, color: "#333" });
+      sm.marker.setStyle({
+        radius: 7,
+        fillOpacity: 1,
+        weight: 2,
+        color: "#333",
+      });
     } else {
       sm.marker.setStyle({ fillOpacity: 0, opacity: 0 });
     }
   });
 
   var segments = extractPathSegments(data.path);
-  var layers = buildPathSegmentLayers(segments, data.path, routesByName, routeStationPathMap, ROUTE_COLORS);
+  var layers = buildPathSegmentLayers(
+    segments,
+    data.path,
+    routesByName,
+    routeStationPathMap,
+    ROUTE_COLORS,
+  );
 
   var allCoords = [];
+  var altColors = ["#e74c3c", "#e67e22", "#8e44ad", "#2ecc71", "#3498db"];
+  var mainColor = altColors[index % altColors.length];
+
   layers.forEach(function (l) {
     if (l.coords.length > 1) {
       var segLayer = L.polyline(l.coords, {
@@ -626,10 +1005,10 @@ function highlightPath(data) {
   });
 
   pathLayer = L.polyline(allCoords, {
-    color: "#e74c3c",
+    color: mainColor,
     weight: 6,
     opacity: 0.85,
-    dashArray: "8 8",
+    dashArray: index === 0 ? null : "8 8",
   }).addTo(map);
   map.fitBounds(pathLayer.getBounds(), { padding: [40, 40] });
 
