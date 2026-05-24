@@ -1,0 +1,16 @@
+module.exports = {
+  AMAP_KEY: 'fc83711fd95930b3049d947e11f7096e',
+  CITY: '西安',
+  CITY_CODE: '029',
+  AMAP_BASE: 'https://restapi.amap.com/v3/direction/transit/integrated',
+  QPS: 3,
+  RETRY_MAX: 5,
+  RETRY_BASE_DELAY: 2000,
+  TIMEOUT: 10000,
+  RANDOM_CASE_COUNT: 80,
+  DATA_DIR: '../data',
+  OUTPUT_DIR: './output',
+  STRATEGIES: [0],
+  WAIT_TIME_MIN: 3,
+  MIN_DISTANCE_M: 1000,
+};

@@ -1,0 +1,28 @@
+{
+  "total_cases": 90,
+  "valid_count": 84,
+  "local_no_path_count": 0,
+  "amap_no_path_count": 6,
+  "time_diff": {
+    "avg_min": -11.79,
+    "avg_pct": -21.7,
+    "local_faster_count": 83,
+    "amap_faster_count": 1,
+    "equal_count": 0
+  },
+  "jaccard": {
+    "avg": 0.819,
+    "median": 0.9333,
+    "min": 0.0769,
+    "max": 1
+  },
+  "transfer": {
+    "same_count": 71,
+    "same_pct": 84.5
+  },
+  "lines": {
+    "match_count": 45,
+    "match_pct": 53.6
+  },
+  "timestamp": "20260520_0038"
+}
