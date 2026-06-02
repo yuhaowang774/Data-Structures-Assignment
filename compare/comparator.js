@@ -59,9 +59,15 @@ function compareTransferStations(localTransfers, amapTransfers) {
   return { common: common, local_only: localOnly, amap_only: amapOnly };
 }
 
+function normalizeLineName(name) {
+  if (!name) return name;
+  var n = name.replace(/^地铁(\d+)号$/, '地铁$1号线');
+  return n;
+}
+
 function compareSegmentLines(localSegments, amapSegments) {
-  var localLines = localSegments.map(function (s) { return s.line; });
-  var amapLines = amapSegments.map(function (s) { return s.line_short; });
+  var localLines = localSegments.map(function (s) { return normalizeLineName(s.line); });
+  var amapLines = amapSegments.map(function (s) { return normalizeLineName(s.line_short); });
   return { local_lines: localLines, amap_lines: amapLines, lines_match: JSON.stringify(localLines) === JSON.stringify(amapLines) };
 }
 

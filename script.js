@@ -204,8 +204,10 @@ function dijkstra(startName, endName, mode) {
       var newCost;
       if (mode === 0) {
         newCost = newTime;
-      } else {
+      } else if (mode === 1) {
         newCost = newTransfers + newTime * 1e-6;
+      } else {
+        newCost = newTime * 1000 + newTransfers;
       }
 
       if (
@@ -214,7 +216,9 @@ function dijkstra(startName, endName, mode) {
           ? INF
           : mode === 0
             ? dist[neighbor]
-            : transferArr[neighbor] + dist[neighbor] * 1e-6)
+            : mode === 1
+              ? transferArr[neighbor] + dist[neighbor] * 1e-6
+              : dist[neighbor] * 1000 + transferArr[neighbor])
       ) {
         dist[neighbor] = newTime;
         transferArr[neighbor] = newTransfers;
@@ -452,6 +456,11 @@ function setupSearchInput(inputId, dropdownId) {
         input.value = s.name;
         dropdown.classList.remove("show");
       };
+      div.ontouchend = function (e) {
+        e.preventDefault();
+        input.value = s.name;
+        dropdown.classList.remove("show");
+      };
       dropdown.appendChild(div);
     });
     dropdown.classList.add("show");
@@ -517,8 +526,9 @@ function drawStations() {
       fillOpacity: 0.8,
       weight: 1.5,
     });
+    var hitRadius = window.innerWidth <= 768 ? 20 : 14;
     var hitArea = L.circleMarker([s.lat, s.lon], {
-      radius: 14,
+      radius: hitRadius,
       color: "transparent",
       fillColor: "transparent",
       fillOpacity: 0,
@@ -623,8 +633,10 @@ function dijkstraWithPenalty(startName, endName, mode, penaltyWeights) {
       var newCost;
       if (mode === 0) {
         newCost = newPenalizedTime;
-      } else {
+      } else if (mode === 1) {
         newCost = newTransfers + newPenalizedTime * 1e-6;
+      } else {
+        newCost = newPenalizedTime * 1000 + newTransfers;
       }
 
       var oldCost =
@@ -632,7 +644,9 @@ function dijkstraWithPenalty(startName, endName, mode, penaltyWeights) {
           ? INF
           : mode === 0
             ? dist[neighbor]
-            : transferArr[neighbor] + dist[neighbor] * 1e-6;
+            : mode === 1
+              ? transferArr[neighbor] + dist[neighbor] * 1e-6
+              : dist[neighbor] * 1000 + transferArr[neighbor];
 
       if (newCost < oldCost) {
         dist[neighbor] = newPenalizedTime;
@@ -813,6 +827,8 @@ function showError(msg) {
   document.getElementById("result-error").style.display = "block";
   document.getElementById("result-error").textContent = msg;
   document.getElementById("result-content").style.display = "none";
+  var vizBtn = document.getElementById("viz-btn");
+  if (vizBtn) vizBtn.style.display = "none";
 }
 
 function showResult(allResults, start, end) {
@@ -883,6 +899,19 @@ function showResult(allResults, start, end) {
     }
   }
   document.getElementById("result-stations").innerHTML = html;
+
+  var vizBtn = document.getElementById("viz-btn");
+  if (!vizBtn) {
+    vizBtn = document.createElement("button");
+    vizBtn.id = "viz-btn";
+    vizBtn.className = "viz-trigger-btn";
+    vizBtn.textContent = "可视化算法过程";
+    vizBtn.onclick = function () {
+      DijkstraViz.open(start, end, 0, selectedAltIndex);
+    };
+    document.getElementById("result-content").appendChild(vizBtn);
+  }
+  vizBtn.style.display = "";
 }
 
 function renderAlternativeList() {
@@ -1058,4 +1087,38 @@ function resetMap() {
   map.setView([gcj02Lat(34.26, 108.95), gcj02Lon(34.26, 108.95)], 12);
 }
 
-document.addEventListener("DOMContentLoaded", initMap);
+document.addEventListener("DOMContentLoaded", function () {
+  initMap();
+  initMobileSidebar();
+});
+
+function initMobileSidebar() {
+  var toggleBtn = document.getElementById("sidebar-toggle");
+  var sidebar = document.getElementById("sidebar");
+  if (!toggleBtn || !sidebar) return;
+  toggleBtn.addEventListener("click", function () {
+    sidebar.classList.toggle("sidebar-open");
+    toggleBtn.textContent = sidebar.classList.contains("sidebar-open")
+      ? "✕"
+      : "☰";
+    setTimeout(function () {
+      if (map) map.invalidateSize();
+    }, 400);
+  });
+  document.getElementById("map").addEventListener("click", function () {
+    if (sidebar.classList.contains("sidebar-open")) {
+      sidebar.classList.remove("sidebar-open");
+      toggleBtn.textContent = "☰";
+      setTimeout(function () {
+        if (map) map.invalidateSize();
+      }, 400);
+    }
+  });
+  window.addEventListener("resize", function () {
+    if (window.innerWidth > 768) {
+      sidebar.classList.remove("sidebar-open");
+      toggleBtn.textContent = "☰";
+    }
+    if (map) map.invalidateSize();
+  });
+}

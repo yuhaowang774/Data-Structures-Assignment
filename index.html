@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <button id="sidebar-toggle" aria-label="切换侧边栏">☰</button>
     <div id="sidebar">
       <h2>西安地铁换乘计算器</h2>
       <div class="control-group">
@@ -38,6 +39,7 @@
         </div>
       </div>
       <div class="btn-group">
+        <button id="btn-combined" onclick="queryPath(2)">综合最优</button>
         <button id="btn-time" onclick="queryPath(0)">时间最短</button>
         <button id="btn-transfer" onclick="queryPath(1)">换乘最少</button>
         <button id="btn-reset" onclick="resetMap()">重置地图</button>
@@ -273,9 +275,81 @@
     </div>
     <div id="map"></div>
 
+    <div id="viz-panel" class="viz-panel">
+      <div class="viz-panel-header">
+        <span class="viz-panel-title">Dijkstra 算法可视化</span>
+        <button class="viz-btn-close" title="关闭">✕</button>
+      </div>
+      <div class="viz-body">
+        <div class="viz-canvas-wrap">
+          <canvas id="viz-canvas"></canvas>
+        </div>
+        <div class="viz-sidebar">
+          <div class="viz-controls">
+            <button class="viz-btn viz-btn-reset">重置</button>
+            <button class="viz-btn viz-btn-prev">◀</button>
+            <span class="viz-step-counter">1 / 1</span>
+            <button class="viz-btn viz-btn-next">▶</button>
+          </div>
+          <div class="viz-progress-bar">
+            <div class="viz-progress-fill" style="width: 0%"></div>
+          </div>
+          <div class="viz-step-desc"></div>
+          <div class="viz-legend">
+            <div class="viz-legend-title">节点图例</div>
+            <span class="viz-legend-item"
+              ><span class="viz-legend-dot" style="background: #4b5563"></span
+              >未访问</span
+            >
+            <span class="viz-legend-item"
+              ><span class="viz-legend-dot" style="background: #60a5fa"></span
+              >在队列中</span
+            >
+            <span class="viz-legend-item"
+              ><span class="viz-legend-dot" style="background: #f59e0b"></span
+              >当前处理</span
+            >
+            <span class="viz-legend-item"
+              ><span class="viz-legend-dot" style="background: #22c55e"></span
+              >已访问</span
+            >
+            <span class="viz-legend-item"
+              ><span class="viz-legend-dot" style="background: #ef4444"></span
+              >最短路径</span
+            >
+            <div class="viz-legend-title" style="margin-top: 6px">边图例</div>
+            <span class="viz-legend-item"
+              ><span class="viz-legend-line" style="background: #475569"></span
+              >未探索</span
+            >
+            <span class="viz-legend-item"
+              ><span
+                class="viz-legend-line"
+                style="background: rgba(34, 197, 94, 0.25)"
+              ></span
+              >两端已访问</span
+            >
+            <span class="viz-legend-item"
+              ><span class="viz-legend-line" style="background: #22c55e"></span
+              >最短路树边</span
+            >
+            <span class="viz-legend-item"
+              ><span class="viz-legend-line" style="background: #fbbf24"></span
+              >松弛中</span
+            >
+            <span class="viz-legend-item"
+              ><span class="viz-legend-line" style="background: #ef4444"></span
+              >最短路径</span
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="path-logic.js"></script>
     <script src="schedule-config.js"></script>
+    <script src="dijkstra-viz.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
