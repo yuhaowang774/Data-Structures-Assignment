@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+.Rhistory
+*.exe
+*.o
+*.obj
+.env
+.venv/
+venv/
+node_modules/
+.DS_Store
+Thumbs.db
+compare/output/

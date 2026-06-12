@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>西安地铁换乘最优路径计算器</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <button id="sidebar-toggle" aria-label="切换侧边栏">☰</button>
+    <div id="sidebar">
+      <h2>西安地铁换乘计算器</h2>
+      <div class="control-group">
+        <label>起点站：</label>
+        <div class="select-wrapper">
+          <input
+            type="text"
+            id="start-input"
+            placeholder="输入或点击地图选择起点站"
+            autocomplete="off"
+          />
+          <div id="start-dropdown" class="dropdown"></div>
+        </div>
+      </div>
+      <div class="control-group">
+        <label>终点站：</label>
+        <div class="select-wrapper">
+          <input
+            type="text"
+            id="end-input"
+            placeholder="输入或点击地图选择终点站"
+            autocomplete="off"
+          />
+          <div id="end-dropdown" class="dropdown"></div>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button id="btn-combined" onclick="queryPath(2)">综合最优</button>
+        <button id="btn-time" onclick="queryPath(0)">时间最短</button>
+        <button id="btn-transfer" onclick="queryPath(1)">换乘最少</button>
+        <button id="btn-reset" onclick="resetMap()">重置地图</button>
+      </div>
+      <div id="result" class="hidden">
+        <div id="result-error" class="error-msg" style="display: none"></div>
+        <div id="result-content">
+          <div class="result-header">
+            <span id="result-time"></span>
+            <span id="result-transfers"></span>
+          </div>
+          <div id="result-stations"></div>
+          <div
+            id="alternatives-container"
+            class="alternatives-container"
+            style="display: none"
+          >
+            <div class="alt-section-header" onclick="toggleAltSection()">
+              <span class="alt-section-icon"></span>
+              <span>备用方案</span>
+              <span class="alt-section-count"
+                >(<span id="alt-count">0</span>)</span
+              >
+              <span class="alt-toggle-arrow" id="alt-toggle-icon">▼</span>
+            </div>
+            <div id="alternatives-list" class="alternatives-list"></div>
+          </div>
+        </div>
+      </div>
+      <div id="schedule-panel">
+        <div class="schedule-header" onclick="toggleSchedulePanel()">
+          <div class="schedule-header-left">
+            <span class="schedule-header-icon"></span>
+            <span>时段调度中心</span>
+          </div>
+          <div class="schedule-header-right">
+            <span id="header-period-dot" class="period-dot"></span>
+            <span id="schedule-toggle-icon" class="toggle-arrow">▼</span>
+          </div>
+        </div>
+        <div id="schedule-body" class="collapsed">
+          <div class="schedule-card period-status-card">
+            <div class="card-icon-row">
+              <span class="card-icon icon-status"></span>
+              <span class="card-title">当前时段</span>
+            </div>
+            <div id="current-period-display" class="period-display">
+              <span class="period-label">检测中...</span>
+              <span class="period-time-range"></span>
+            </div>
+          </div>
+          <div class="schedule-card">
+            <div class="card-icon-row">
+              <span class="card-icon icon-mode"></span>
+              <span class="card-title">调度模式</span>
+            </div>
+            <div class="schedule-mode-btns">
+              <button
+                id="mode-auto-btn"
+                class="mode-btn active"
+                onclick="setScheduleMode('auto')"
+              >
+                <span class="mode-btn-dot"></span>
+                <span>自动检测</span>
+              </button>
+              <button
+                id="mode-manual-btn"
+                class="mode-btn"
+                onclick="setScheduleMode('manual')"
+              >
+                <span class="mode-btn-dot"></span>
+                <span>手动设置</span>
+              </button>
+            </div>
+            <div id="auto-sim-time" class="sim-time-row">
+              <span class="sim-time-label">模拟时间</span>
+              <input
+                type="time"
+                id="sim-time-input"
+                onchange="setSimulatedTime(this.value)"
+              />
+              <button class="sim-time-clear-btn" onclick="clearSimulatedTime()">
+                清除
+              </button>
+            </div>
+          </div>
+          <div id="manual-controls" class="schedule-card" style="display: none">
+            <div class="card-icon-row">
+              <span class="card-icon icon-manual"></span>
+              <span class="card-title">手动控制</span>
+            </div>
+            <div id="manual-period-list" class="manual-period-list"></div>
+          </div>
+          <div class="schedule-card">
+            <div class="card-icon-row">
+              <span class="card-icon icon-peak"></span>
+              <span class="card-title">高峰期系数</span>
+              <span class="card-badge peak-badge">高峰</span>
+            </div>
+            <div class="factor-grid">
+              <div class="factor-item">
+                <span class="factor-label">运行时间</span>
+                <div class="factor-input-wrap">
+                  <span class="factor-x">×</span>
+                  <input
+                    type="number"
+                    id="peak-run-factor"
+                    step="0.1"
+                    min="1.0"
+                    max="3.0"
+                    value="1.3"
+                    onchange="updatePeakFactor()"
+                  />
+                </div>
+              </div>
+              <div class="factor-item">
+                <span class="factor-label">换乘时间</span>
+                <div class="factor-input-wrap">
+                  <span class="factor-x">×</span>
+                  <input
+                    type="number"
+                    id="peak-transfer-factor"
+                    step="0.1"
+                    min="1.0"
+                    max="5.0"
+                    value="1.5"
+                    onchange="updatePeakFactor()"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="schedule-card">
+            <div class="card-icon-row">
+              <span class="card-icon icon-offpeak"></span>
+              <span class="card-title">平峰期系数</span>
+              <span class="card-badge offpeak-badge">平峰</span>
+            </div>
+            <div class="factor-grid">
+              <div class="factor-item">
+                <span class="factor-label">运行时间</span>
+                <div class="factor-input-wrap">
+                  <span class="factor-x">×</span>
+                  <input
+                    type="number"
+                    id="offpeak-run-factor"
+                    step="0.1"
+                    min="0.5"
+                    max="2.0"
+                    value="1.0"
+                    onchange="updateOffpeakFactor()"
+                  />
+                </div>
+              </div>
+              <div class="factor-item">
+                <span class="factor-label">换乘时间</span>
+                <div class="factor-input-wrap">
+                  <span class="factor-x">×</span>
+                  <input
+                    type="number"
+                    id="offpeak-transfer-factor"
+                    step="0.1"
+                    min="0.5"
+                    max="3.0"
+                    value="1.0"
+                    onchange="updateOffpeakFactor()"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="schedule-card">
+            <div class="card-icon-row">
+              <span class="card-icon icon-line"></span>
+              <span class="card-title">线路特殊系数</span>
+            </div>
+            <select id="line-override-select" onchange="onLineOverrideSelect()">
+              <option value="">选择线路...</option>
+            </select>
+            <div id="line-override-config" style="display: none">
+              <div class="factor-grid">
+                <div class="factor-item">
+                  <span class="factor-label">高峰运行</span>
+                  <div class="factor-input-wrap">
+                    <span class="factor-x">×</span>
+                    <input
+                      type="number"
+                      id="line-peak-run"
+                      step="0.1"
+                      min="1.0"
+                      max="3.0"
+                      value="1.3"
+                    />
+                  </div>
+                </div>
+                <div class="factor-item">
+                  <span class="factor-label">高峰换乘</span>
+                  <div class="factor-input-wrap">
+                    <span class="factor-x">×</span>
+                    <input
+                      type="number"
+                      id="line-peak-transfer"
+                      step="0.1"
+                      min="1.0"
+                      max="5.0"
+                      value="1.5"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="line-override-actions">
+                <button class="apply-btn" onclick="applyLineOverride()">
+                  应用
+                </button>
+                <button class="reset-btn" onclick="removeLineOverride()">
+                  重置
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="schedule-card">
+            <div class="card-icon-row">
+              <span class="card-icon icon-rules"></span>
+              <span class="card-title">时段规则</span>
+            </div>
+            <div id="period-rules-list" class="period-rules"></div>
+          </div>
+          <button class="reset-all-btn" onclick="resetScheduleConfig()">
+            恢复默认配置
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="map"></div>
+
+    <div id="viz-panel" class="viz-panel">
+      <div class="viz-panel-header">
+        <span class="viz-panel-title">Dijkstra 算法可视化</span>
+        <button class="viz-btn-close" title="关闭">✕</button>
+      </div>
+      <div class="viz-body">
+        <div class="viz-canvas-wrap">
+          <canvas id="viz-canvas"></canvas>
+        </div>
+        <div class="viz-sidebar">
+          <div class="viz-controls">
+            <button class="viz-btn viz-btn-reset">重置</button>
+            <button class="viz-btn viz-btn-prev">◀</button>
+            <span class="viz-step-counter">1 / 1</span>
+            <button class="viz-btn viz-btn-next">▶</button>
+          </div>
+          <div class="viz-progress-bar">
+            <div class="viz-progress-fill" style="width: 0%"></div>
+          </div>
+          <div class="viz-step-desc"></div>
+          <div class="viz-legend">
+            <div class="viz-legend-title">节点图例</div>
+            <span class="viz-legend-item"
+              ><span class="viz-legend-dot" style="background: #4b5563"></span
+              >未访问</span
+            >
+            <span class="viz-legend-item"
+              ><span class="viz-legend-dot" style="background: #60a5fa"></span
+              >在队列中</span
+            >
+            <span class="viz-legend-item"
+              ><span class="viz-legend-dot" style="background: #f59e0b"></span
+              >当前处理</span
+            >
+            <span class="viz-legend-item"
+              ><span class="viz-legend-dot" style="background: #22c55e"></span
+              >已访问</span
+            >
+            <span class="viz-legend-item"
+              ><span class="viz-legend-dot" style="background: #ef4444"></span
+              >最短路径</span
+            >
+            <div class="viz-legend-title" style="margin-top: 6px">边图例</div>
+            <span class="viz-legend-item"
+              ><span class="viz-legend-line" style="background: #475569"></span
+              >未探索</span
+            >
+            <span class="viz-legend-item"
+              ><span
+                class="viz-legend-line"
+                style="background: rgba(34, 197, 94, 0.25)"
+              ></span
+              >两端已访问</span
+            >
+            <span class="viz-legend-item"
+              ><span class="viz-legend-line" style="background: #22c55e"></span
+              >最短路树边</span
+            >
+            <span class="viz-legend-item"
+              ><span class="viz-legend-line" style="background: #fbbf24"></span
+              >松弛中</span
+            >
+            <span class="viz-legend-item"
+              ><span class="viz-legend-line" style="background: #ef4444"></span
+              >最短路径</span
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/static/path-logic.js"></script>
+    <script src="/static/schedule-config.js"></script>
+    <script src="/static/dijkstra-viz.js"></script>
+    <script src="/static/script.js"></script>
+  </body>
+</html>
