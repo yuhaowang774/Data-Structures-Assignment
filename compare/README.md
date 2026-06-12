@@ -260,5 +260,4 @@ python -m compare.generate_report compare/output/results_xxx.json
 
 - `compare` 依赖网络，离线时高德部分无法完成
 - 对比测试耗时明显长于普通本地查询
-- 若 `metro_router.exe` 未与最新 C 源码同步重编，主项目的 `mode=2` 可能由 Python 兜底
 

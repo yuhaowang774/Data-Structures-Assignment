@@ -93,7 +93,9 @@ Data-Structures-Assignment/
 │     ├─ dijkstra.h / dijkstra.c  # Dijkstra 算法
 │     ├─ main.c               # C 程序入口
 │     ├─ test_core.c          # C 层测试
-│     └─ Makefile             # 编译配置
+│     ├─ Makefile             # 编译配置
+│     ├─ metro_router.exe     # 编译产物（C 核心）
+│     └─ test_core.exe        # 编译产物（测试程序）
 ├─ compare/                   # 高德对比测试
 │  ├─ config.py               # 配置（API Key 等）
 │  ├─ local_router.py         # 本地查询封装
@@ -103,6 +105,8 @@ Data-Structures-Assignment/
 │  ├─ reporter.py             # 结果输出
 │  ├─ generate_report.py      # Markdown 报告生成
 │  ├─ run_compare.py          # 对比测试入口
+│  ├─ start_compare.bat       # 对比测试启动脚本
+│  ├─ start_compare.ps1       # 对比测试启动脚本
 │  └─ output/                 # 对比结果输出
 ├─ CPTOND-2025/               # 城市公共交通数据
 │  ├─ city_list/              # 城市清单

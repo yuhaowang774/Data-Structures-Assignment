@@ -225,7 +225,7 @@ CPTOND-2025/dataset/metro/shapefiles/sian/
 - 先比较换乘数
 - 再比较总时间
 
-`mode=2` 已写入源码。若 `metro_router.exe` 未与最新源码同步重编，后端会自动使用 Python 实现兜底。
+`mode=2` 已在 C 源码中完整实现，代价函数为 `new_cost = new_time * 1000.0 + new_transfers`，三种模式均由 C 核心执行。
 
 ## 7. C 程序接口设计
 
@@ -404,20 +404,9 @@ metro_router.exe <graph_file> <mode>
 
 ## 14. 当前代码与二进制状态
 
-当前需要注意：
+当前 C 核心源码已完整实现三种查询模式（mode=0/1/2），`metro_router.exe` 为编译后的可执行文件。如需重编译：
 
-- `metro_router/core/dijkstra.c`
-- `metro_router/core/main.c`
-
-在 2026-06-02 做过更新，而仓库中的：
-
-- `metro_router/core/metro_router.exe`
-
-时间戳早于源码更新。
-
-因此：
-
-- `mode=0`、`mode=1` 仍可直接调用现有 C 核心
-- `mode=2` 若发现二进制落后，后端会使用 Python 兜底
-
-若希望全部模式都由最新 C 核心执行，需要在本机重新编译。
+```powershell
+cd metro_router/core
+mingw32-make
+```
