@@ -97,6 +97,8 @@ Data-Structures-Assignment/
 │     ├─ metro_router.exe     # 编译产物（C 核心）
 │     └─ test_core.exe        # 编译产物（测试程序）
 ├─ compare/                   # 高德对比测试
+│  ├─ README.md               # 对比测试说明
+│  ├─ __init__.py             # Python 包标识
 │  ├─ config.py               # 配置（API Key 等）
 │  ├─ local_router.py         # 本地查询封装
 │  ├─ amap_client.py          # 高德接口客户端
@@ -109,6 +111,7 @@ Data-Structures-Assignment/
 │  ├─ start_compare.ps1       # 对比测试启动脚本
 │  └─ output/                 # 对比结果输出
 ├─ CPTOND-2025/               # 城市公共交通数据
+│  ├─ README.md               # 数据处理说明
 │  ├─ city_list/              # 城市清单
 │  ├─ code/                   # 数据处理脚本
 │  └─ dataset/metro/          # 轨道交通 Shapefile
