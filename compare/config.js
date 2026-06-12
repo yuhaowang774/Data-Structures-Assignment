@@ -1,5 +1,5 @@
 module.exports = {
-  AMAP_KEY: 'fc83711fd95930b3049d947e11f7096e',
+  AMAP_KEY: process.env.AMAP_KEY || 'YOUR_AMAP_KEY_HERE',
   CITY: '西安',
   CITY_CODE: '029',
   AMAP_BASE: 'https://restapi.amap.com/v3/direction/transit/integrated',
