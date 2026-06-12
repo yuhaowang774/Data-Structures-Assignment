@@ -299,65 +299,111 @@ function initMap() {
 }
 
 function loadData() {
-  Promise.all([
-    fetch("data/graph.json").then(function (r) {
-      return r.json();
-    }),
-    fetch("data/stations.json").then(function (r) {
-      return r.json();
-    }),
-    fetch("data/routes.json").then(function (r) {
-      return r.json();
-    }),
-  ])
-    .then(function (results) {
-      graphData = results[0];
-      buildAdjList();
-      routesData = results[2].routes;
-      stationsData = results[1].stations;
-      graphData.nodes.forEach(function (n) {
-        var oLat = n.lat;
-        n.lat = gcj02Lat(n.lat, n.lon);
-        n.lon = gcj02Lon(oLat, n.lon);
-      });
-      stationsData.forEach(function (s) {
+  if (typeof GRAPH_DATA !== "undefined" && typeof STATIONS_DATA !== "undefined" && typeof ROUTES_DATA !== "undefined") {
+    graphData = GRAPH_DATA;
+    buildAdjList();
+    routesData = ROUTES_DATA.routes;
+    stationsData = STATIONS_DATA.stations;
+    graphData.nodes.forEach(function (n) {
+      var oLat = n.lat;
+      n.lat = gcj02Lat(n.lat, n.lon);
+      n.lon = gcj02Lon(oLat, n.lon);
+    });
+    stationsData.forEach(function (s) {
+      var oLat = s.lat;
+      s.lat = gcj02Lat(s.lat, s.lon);
+      s.lon = gcj02Lon(oLat, s.lon);
+    });
+    routesData.forEach(function (r) {
+      r.stations.forEach(function (s) {
         var oLat = s.lat;
         s.lat = gcj02Lat(s.lat, s.lon);
         s.lon = gcj02Lon(oLat, s.lon);
       });
-      routesData.forEach(function (r) {
-        r.stations.forEach(function (s) {
+      if (r.path) {
+        r.path = r.path.map(function (p) {
+          return [gcj02Lat(p[0], p[1]), gcj02Lon(p[0], p[1])];
+        });
+      }
+    });
+    initSearchInputs();
+    buildRouteIndex();
+    drawRoutes();
+    drawStations();
+    if (typeof ScheduleConfig !== "undefined") {
+      ScheduleConfig.init({
+        onPeriodChange: function () {
+          buildAdjList();
+          if (typeof ScheduleConfigUI !== "undefined") {
+            ScheduleConfigUI.refresh();
+          }
+        },
+      });
+    }
+    if (typeof ScheduleConfigUI !== "undefined") {
+      ScheduleConfigUI.init();
+    }
+  } else {
+    Promise.all([
+      fetch("data/graph.json").then(function (r) {
+        return r.json();
+      }),
+      fetch("data/stations.json").then(function (r) {
+        return r.json();
+      }),
+      fetch("data/routes.json").then(function (r) {
+        return r.json();
+      }),
+    ])
+      .then(function (results) {
+        graphData = results[0];
+        buildAdjList();
+        routesData = results[2].routes;
+        stationsData = results[1].stations;
+        graphData.nodes.forEach(function (n) {
+          var oLat = n.lat;
+          n.lat = gcj02Lat(n.lat, n.lon);
+          n.lon = gcj02Lon(oLat, n.lon);
+        });
+        stationsData.forEach(function (s) {
           var oLat = s.lat;
           s.lat = gcj02Lat(s.lat, s.lon);
           s.lon = gcj02Lon(oLat, s.lon);
         });
-        if (r.path) {
-          r.path = r.path.map(function (p) {
-            return [gcj02Lat(p[0], p[1]), gcj02Lon(p[0], p[1])];
+        routesData.forEach(function (r) {
+          r.stations.forEach(function (s) {
+            var oLat = s.lat;
+            s.lat = gcj02Lat(s.lat, s.lon);
+            s.lon = gcj02Lon(oLat, s.lon);
+          });
+          if (r.path) {
+            r.path = r.path.map(function (p) {
+              return [gcj02Lat(p[0], p[1]), gcj02Lon(p[0], p[1])];
+            });
+          }
+        });
+        initSearchInputs();
+        buildRouteIndex();
+        drawRoutes();
+        drawStations();
+        if (typeof ScheduleConfig !== "undefined") {
+          ScheduleConfig.init({
+            onPeriodChange: function () {
+              buildAdjList();
+              if (typeof ScheduleConfigUI !== "undefined") {
+                ScheduleConfigUI.refresh();
+              }
+            },
           });
         }
+        if (typeof ScheduleConfigUI !== "undefined") {
+          ScheduleConfigUI.init();
+        }
+      })
+      .catch(function () {
+        alert("加载数据失败");
       });
-      initSearchInputs();
-      buildRouteIndex();
-      drawRoutes();
-      drawStations();
-      if (typeof ScheduleConfig !== "undefined") {
-        ScheduleConfig.init({
-          onPeriodChange: function () {
-            buildAdjList();
-            if (typeof ScheduleConfigUI !== "undefined") {
-              ScheduleConfigUI.refresh();
-            }
-          },
-        });
-      }
-      if (typeof ScheduleConfigUI !== "undefined") {
-        ScheduleConfigUI.init();
-      }
-    })
-    .catch(function () {
-      alert("加载数据失败");
-    });
+  }
 }
 
 function buildAdjList() {
